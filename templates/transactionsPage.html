@@ -1,0 +1,148 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<style>
+    .bg-red {
+    background-color: red;
+    color: white;
+    cursor: not-allowed;
+}
+
+.bg-green {
+    background-color: green;
+    color: white;
+    cursor: pointer;
+}
+</style>
+
+<div class="transaction-box">
+    <h1 style="text-align: center;">Transaction</h1>
+    <form action="{{ url_for('execute_tx') }}" method="POST" id="myForm" autocomplete="off">
+        <label>Your Account Number</label>
+        <input type="text" name="account_number" placeholder="Enter Account Number" required>
+
+        <label>Transaction Type</label>
+        <select name="tx_type" id="tx_type" onchange="toggleTransferField()">
+            <option value="deposit">Deposit</option>
+            <option value="withdraw">Withdraw</option>
+            <option value="transfer">Transfer</option>
+        </select>
+
+        <div id="transfer_field" style="display: none;">
+            <label>To Account Number</label>
+            <input type="text" id="target_account_number" name="target_account_number" placeholder="Recipient Account #">
+
+            <button type="button" onclick="checkAccount()">Check Account</button>
+
+            <p id="target_name" style="color:green;"></p>
+        </div>
+
+        <label>Amount</label>
+        <input type="number" step="0.01" name="amount" placeholder="0.00" required>
+
+        <label>Transaction PIN</label>
+        <input type="password" name="pin" placeholder="Enter Secret PIN" required autocomplete="new-password">
+
+        <button type="submit" id="process_btn" class="bg-green">Process Transaction</button>
+    </form>
+</div>
+
+<hr>
+<!-- 
+<h3>Recent Transactions</h3>
+<table border="1">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Account</th>
+            <th>Amount</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Date</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for tx in transactions %}
+        <tr>
+            <td>{{ tx.transaction_id }}</td>
+            <td>{{ tx.account_number }}</td>
+            <td>${{ tx.amount }}</td>
+            <td>{{ tx.transfer_type }}</td>
+            <td>{{ tx.description }}</td>
+            <td>{{ tx.transfer_date }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table> -->
+
+<script>
+function toggleTransferField() {
+    var type = document.getElementById("tx_type").value;
+    var field = document.getElementById("transfer_field");
+    field.style.display = (type === "transfer") ? "block" : "none";
+}
+
+window.addEventListener("DOMContentLoaded", function () {
+    const form = document.getElementById("myForm");
+
+    if (form) {
+        form.querySelectorAll("input").forEach(input => input.value = "");
+        form.querySelectorAll("select").forEach(select => select.selectedIndex = 0);
+    }
+
+    document.getElementById("transfer_field").style.display = "none";
+});
+function checkAccount() {
+    const acc = document.getElementById("target_account_number").value;
+
+    fetch("/check_account", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({account_number: acc})
+    })
+    .then(response => response.json())
+    .then(data => {
+
+        const resultText = document.getElementById("target_name");
+        const processBtn = document.getElementById("process_btn");
+        
+        if(data.success){
+            resultText.innerText = "Account Username Found : " + data.name;
+            resultText.style.color = "green";
+            processBtn.classList.remove("bg-red");
+            processBtn.classList.add("bg-green");
+
+            processBtn.disabled = false; // allow transaction
+        }else{
+            resultText.innerText = "Account not found";
+            resultText.style.color = "red";
+            processBtn.classList.remove("bg-green");
+            processBtn.classList.add("bg-red");
+
+            processBtn.disabled = true; // block transaction
+        }
+
+    });
+}
+function toggleTransferField() {
+    var type = document.getElementById("tx_type").value;
+    var field = document.getElementById("transfer_field");
+    var processBtn = document.getElementById("process_btn");
+
+    if (type === "transfer") {
+        field.style.display = "block";
+        processBtn.disabled = true; // must verify account first
+        processBtn.classList.remove("bg-green");
+        processBtn.classList.add("bg-red");
+    } else {
+        field.style.display = "none";
+        processBtn.disabled = false; // allow deposit / withdraw
+        processBtn.classList.remove("bg-red");
+        processBtn.classList.add("bg-green");
+    }
+}
+</script>
+</script>
+{% endblock %}
